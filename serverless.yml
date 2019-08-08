@@ -1,0 +1,73 @@
+service: floqars
+frameworkVersion: ">=1.28.0 <2.0.0"
+provider:
+  name: aws
+  runtime: go1.x
+  profile: personal
+  region: ${opt:region}
+  versionFunctions: false
+  memorySize: 1024
+  timeout: 30
+  endpointType: regional
+  apiGateway:
+    binaryMediaTypes:
+      - 'application/dns-message'
+  environment:
+    GO_ENV: ${opt:stage}
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "dynamodb:*"
+      Resource:
+        - 'Fn::Join':
+          - ':'
+          -
+            - 'arn:aws:dynamodb'
+            - Ref: 'AWS::Region'
+            - Ref: 'AWS::AccountId'
+            - table/*
+package:
+ exclude:
+   - ./**
+ include:
+   - ./bin/**
+functions:
+  healthCheck:
+    handler: bin/api/health/check
+    events:
+        - http:
+            path: /healthy
+            method: get
+            cors: true
+  createUser:
+    handler: bin/api/people/create
+    events:
+        - http:
+            path: /people
+            method: post
+            cors: true
+  getPeople:
+    handler: bin/api/people/get
+    events:
+        - http:
+            path: /people
+            method: get
+            cors: true
+  connect:
+    handler: bin/api/live/connect
+    events:
+      - websocket:
+          route: $connect
+          cors: true
+  disconnect:
+    handler: bin/api/live/disconnect
+    events:
+      - websocket: 
+          route: $disconnect
+          cors: true
+  broadcast:
+    handler: bin/api/live/broadcast
+    events:
+      - websocket: 
+          route: broadcast
+          cors: true
